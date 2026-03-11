@@ -1,7 +1,7 @@
-import React from 'react'
+import React, { useState, useEffect } from 'react'
 import { Link, NavLink, useLocation, useNavigate } from 'react-router-dom';
 import { assets } from '../assets/assets';
-import { useClerk, useUser, UserButton } from '@clerk/react';
+// import { useClerk, useUser, UserButton } from '@clerk/react';
 
 const BookIcon = () => (
     <svg className="w-4 h-4 text-gray-700" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="none" viewBox="0 0 24 24">
@@ -20,11 +20,18 @@ const Navbar = () => {
 
     const [isScrolled, setIsScrolled] = React.useState(false);
     const [isMenuOpen, setIsMenuOpen] = React.useState(false);
+    const [token, setToken] = React.useState(localStorage.getItem('token')); 
+    const [userData, setUserData] = React.useState(localStorage.getItem('userData') ? JSON.parse(localStorage.getItem('userData')) : null);
 
-    const { openSignIn } = useClerk()
-    const { user } = useUser()
     const navigate = useNavigate()
     const location = useLocation()
+
+    const logout = () => {
+        localStorage.removeItem('token');
+        localStorage.removeItem('userData');
+        setToken(null);
+        navigate('/login');
+    }
 
     React.useEffect(() => {
         const handleScroll = () => {
@@ -50,17 +57,72 @@ const Navbar = () => {
                         <div className={`${isScrolled ? "bg-gray-700" : "bg-white"} h-0.5 w-0 group-hover:w-full transition-all duration-300`} />
                     </NavLink>
                 ))}
-                <button className={`border px-4 py-1 text-sm font-light rounded-full 
-                cursor-pointer ${isScrolled ? 'text-black' : 'text-white'} transition-all`}
-                    onClick={() => navigate('/owner')}>
-                    Dashboard
-                </button>
             </div>
 
             {/* Desktop Right */}
             <div className="hidden md:flex items-center gap-4">
                 <img src={assets.searchIcon} alt="search" className={`${isScrolled && "invert"} h-7 transition-all duration-500`} />
 
+                {token ?
+                    (<div className='relative group ml-4 flex flex-col items-center'>
+                        <img 
+                            src={assets.userIcon} 
+                            alt="profile" 
+                            className="h-10 w-10 rounded-full cursor-pointer border border-gray-300 transition-all" 
+                        />
+                        {userData && (
+                            <span className={`text-[10px] mt-1 font-medium ${isScrolled ? 'text-gray-700' : 'text-white'}`}>
+                                {userData.full_name.split(' ').pop()}
+                            </span>
+                        )}
+                        {/* Dropdown Menu */}
+                        <div className='absolute right-0 top-full pt-3 hidden group-hover:block z-50'>
+                            <div className='bg-white shadow-xl rounded-lg border border-gray-100 py-2 min-w-[150px]'>
+                                <button 
+                                    onClick={() => navigate('/profile')}
+                                    className='w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 transition-colors'
+                                >
+                                    Thông tin cá nhân
+                                </button>
+                                {userData && userData.role === 'hotelOwner' && (
+                                    <button 
+                                        onClick={() => navigate('/owner')}
+                                        className='w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 transition-colors font-medium border-l-4 border-[#EAB308]'
+                                    >
+                                        Quản lý khách sạn
+                                    </button>
+                                )}
+                                {userData && userData.role === 'admin' && (
+                                    <button 
+                                        onClick={() => navigate('/owner')}
+                                        className='w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 transition-colors font-medium border-l-4 border-blue-500'
+                                    >
+                                        Quản lý hệ thống
+                                    </button>
+                                )}
+                                <button 
+                                    onClick={() => navigate('/my-bookings')}
+                                    className='w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 transition-colors'
+                                >
+                                    My Bookings
+                                </button>
+                                <hr className='my-1 border-gray-100' />
+                                <button 
+                                    onClick={logout}
+                                    className='w-full text-left px-4 py-2 text-sm text-red-600 font-medium hover:bg-red-50 transition-colors'
+                                >
+                                    Đăng xuất
+                                </button>
+                            </div>
+                        </div>
+                    </div>)
+                    :
+                    (<button onClick={() => navigate('/login')} className={`px-8 py-2.5 rounded-full ml-4 transition-all duration-500 ${isScrolled ? "text-white bg-black" : "bg-white text-black"}`}>
+                        Login
+                    </button>)
+                }
+
+                {/* Clerk User Button (Commented)
                 {user ?
                     (<UserButton>
                         <UserButton.MenuItems>
@@ -72,11 +134,28 @@ const Navbar = () => {
                     (<button onClick={openSignIn} className={`px-8 py-2.5 rounded-full ml-4 transition-all duration-500 ${isScrolled ? "text-white bg-black" : "bg-white text-black"}`}>
                         Login
                     </button>)
-                }
+                } 
+                */}
             </div>
 
             {/* Mobile Menu Button */}
             <div className="flex items-center gap-3 md:hidden">
+                {token &&
+                    <div className='flex flex-col items-center gap-1'>
+                        <img 
+                            onClick={logout} 
+                            src={assets.userIcon} 
+                            alt="profile" 
+                            className="h-8 w-8 rounded-full border border-gray-300"
+                        />
+                        {userData && (
+                            <span className="text-[9px] font-medium text-gray-700">
+                                {userData.full_name.split(' ').pop()}
+                            </span>
+                        )}
+                    </div>
+                }
+                {/* Clerk Mobile Button (Commented)
                 {user &&
                     <UserButton>
                         <UserButton.MenuItems>
@@ -85,6 +164,7 @@ const Navbar = () => {
                         </UserButton.MenuItems>
                     </UserButton>
                 }
+                */}
                 <img onClick={() => setIsMenuOpen(!isMenuOpen)} src={assets.menuIcon} alt="menu" className={`${isScrolled && "invert"} h-4`} />
             </div>
 
@@ -100,14 +180,22 @@ const Navbar = () => {
                     </Link>
                 ))}
 
-                {user && <button className="border px-4 py-1 text-sm font-light 
-                rounded-full cursor-pointer transition-all" onClick={() => navigate('/owner')}>
-                    Dashboard
+                {token && (userData?.role === 'hotelOwner' || userData?.role === 'admin') && 
+                    <button className="border px-4 py-1 text-sm font-light 
+                    rounded-full cursor-pointer transition-all" onClick={() => navigate('/owner')}>
+                        {userData.role === 'admin' ? 'Quản lý hệ thống' : 'Dashboard'}
+                    </button>
+                }
+
+                {!token && <button onClick={() => navigate('/login')} className="bg-black text-white px-8 py-2.5 rounded-full transition-all duration-500">
+                    Login
                 </button>}
 
+                {/* Clerk Mobile Login (Commented)
                 {!user && <button onClick={openSignIn} className="bg-black text-white px-8 py-2.5 rounded-full transition-all duration-500">
                     Login
                 </button>}
+                */}
             </div>
         </nav>
     );
