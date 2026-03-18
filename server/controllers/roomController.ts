@@ -5,7 +5,7 @@ import bookingModel from "../models/bookingModel.ts";
 import bookingDetailModel from "../models/bookingDetailModel.ts";
 import imagekit from "../config/imagekit.ts";
 
-// @desc    Add a new room
+// @desc    Thêm phòng mới
 // @route   POST /api/rooms
 export const addRoom = async (req: Request, res: Response): Promise<void> => {
     try {
@@ -15,7 +15,7 @@ export const addRoom = async (req: Request, res: Response): Promise<void> => {
             amenities, hotelId, rating, reviewCount 
         } = req.body;
 
-        // Validation - Required fields according to your detailed schema
+        // Xác thực - Các trường bắt buộc theo schema chi tiết
         if (!name || !roomType || !size || !bedType || !price || !description) {
             res.status(400).json({ 
                 success: false, 
@@ -27,10 +27,10 @@ export const addRoom = async (req: Request, res: Response): Promise<void> => {
         let thumbnailUrl = "";
         let imagesUrls: string[] = [];
 
-        // Handle file uploads
+        // Xử lý tải lên tệp tin (ảnh)
         const files = req.files as { [fieldname: string]: Express.Multer.File[] } | undefined;
         
-        // Processing Thumbnail
+        // Xử lý ảnh Thumbnail (ảnh đại diện phòng)
         if (files?.thumbnail?.[0]) {
             const uploadResponse = await imagekit.upload({
                 file: files.thumbnail[0].buffer.toString("base64"),
@@ -43,7 +43,7 @@ export const addRoom = async (req: Request, res: Response): Promise<void> => {
             return;
         }
 
-        // Processing Gallery Images
+        // Xử lý các ảnh trong thư viện (Gallery Images)
         if (files?.images) {
             for (const file of files.images) {
                 const uploadResponse = await imagekit.upload({
@@ -55,7 +55,7 @@ export const addRoom = async (req: Request, res: Response): Promise<void> => {
             }
         }
 
-        // Parse amenities from JSON string if necessary
+        // Chuyển đổi tiện nghi (amenities) từ chuỗi JSON nếu cần thiết
         let parsedAmenities = amenities;
         if (typeof amenities === 'string') {
             try {
@@ -65,7 +65,7 @@ export const addRoom = async (req: Request, res: Response): Promise<void> => {
             }
         }
 
-        // Create the new room instance
+        // Tạo đối tượng phòng mới
         const newRoom = new roomModel({
             name,
             roomType,
@@ -104,7 +104,7 @@ export const addRoom = async (req: Request, res: Response): Promise<void> => {
 
 
 
-// @desc    Get all rooms (can filter by hotelId)
+// @desc    Lấy tất cả danh sách phòng (có thể lọc theo hotelId)
 // @route   GET /api/rooms
 export const getAllRooms = async (req: Request, res: Response): Promise<void> => {
     try {
@@ -114,8 +114,8 @@ export const getAllRooms = async (req: Request, res: Response): Promise<void> =>
         const roomsResult = await roomModel.find(filter).lean();
         
         // --- TÍNH TOÁN TRẠNG THÁI HIỆN TẠI TỰ ĐỘNG CHO HÔM NAY ---
-        const today = new Date();
-        today.setHours(0,0,0,0);
+        let today = new Date();
+        today = new Date(Date.UTC(today.getFullYear(), today.getMonth(), today.getDate()));
         const tonight = new Date(today);
         tonight.setDate(today.getDate() + 1);
 
@@ -148,7 +148,8 @@ export const getAllRooms = async (req: Request, res: Response): Promise<void> =>
             // --- ĐUÔI SỬA LỖI DỮ LIỆU CŨ ---
             // Nếu DB đang kẹt ở 0 (do logic cũ trừ thẳng vào database) mà hôm nay chưa ai đặt đơn nào
             // thì ta khôi phục tạm thời thành 1 để phòng có thể hiện "Sẵn sàng" trong quản lý.
-            if (baseAvailable <= 0 && bookedCount === 0) {
+            // Khôi phục capacity ảo (ít nhất là 1) cho các phòng bị dữ liệu kẹt (như -1, 0) mà thực tế không có ai đặt
+            if (baseAvailable < 1 && bookedCount === 0) {
                 baseAvailable = 1; 
             }
 
@@ -170,13 +171,13 @@ export const getAllRooms = async (req: Request, res: Response): Promise<void> =>
     }
 };
 
-// @desc    Update room status or details
+// @desc    Cập nhật trạng thái hoặc thông tin chi tiết phòng
 // @route   PUT /api/rooms/:id
 export const updateRoom = async (req: Request, res: Response): Promise<void> => {
     try {
         const updateData: Record<string, any> = { ...req.body };
 
-        // Handle file uploads
+        // Xử lý tải lên tệp tin ảnh mới
         const files = req.files as { [fieldname: string]: Express.Multer.File[] } | undefined;
         
         if (files?.thumbnail?.[0]) {
@@ -201,7 +202,7 @@ export const updateRoom = async (req: Request, res: Response): Promise<void> => 
             updateData.images = imagesUrls;
         }
 
-        // Robust parsing for numbers
+        // Chuyển đổi dữ liệu số để đảm bảo tính chính xác
         if (updateData.price) updateData.price = Number(updateData.price);
         if (updateData.capacity) updateData.capacity = Number(updateData.capacity);
         if (updateData.size) updateData.size = Number(updateData.size);
@@ -211,7 +212,7 @@ export const updateRoom = async (req: Request, res: Response): Promise<void> => 
         if (updateData.reviewCount) updateData.reviewCount = Number(updateData.reviewCount);
 
 
-        // Handle nested amenities update
+        // Xử lý cập nhật các trường tiện nghi (amenities) lồng nhau
         if (updateData.amenities) {
             let parsedAmenities = updateData.amenities;
             if (typeof updateData.amenities === 'string') {
@@ -221,7 +222,7 @@ export const updateRoom = async (req: Request, res: Response): Promise<void> => 
                     parsedAmenities = {};
                 }
             }
-            // Merge or set amenities
+            // Gộp hoặc thiết lập tiện nghi mới
             updateData.amenities = {
                 wifi: String(parsedAmenities?.wifi) === 'true',
                 airConditioner: String(parsedAmenities?.airConditioner) === 'true',
@@ -246,7 +247,7 @@ export const updateRoom = async (req: Request, res: Response): Promise<void> => 
 
 
 
-// @desc    Delete room
+// @desc    Xóa phòng
 // @route   DELETE /api/rooms/:id
 export const deleteRoom = async (req: Request, res: Response): Promise<void> => {
     try {
@@ -261,14 +262,18 @@ export const deleteRoom = async (req: Request, res: Response): Promise<void> => 
     }
 };
 
-// @desc    Search and filter rooms
+// @desc    Tìm kiếm và lọc danh sách phòng
 // @route   GET /api/rooms/search
 export const searchRooms = async (req: Request, res: Response): Promise<void> => {
     try {
-        const { query, bedType, type, capacity, minPrice, maxPrice, sort, wifi, airConditioner, breakfast, checkIn, checkOut } = req.query;
+        const { query, bedType, type, capacity, minPrice, maxPrice, sort, wifi, airConditioner, breakfast, checkIn, checkOut, roomId } = req.query;
 
         const conditions: any[] = [];
         const searchQuery = query as string;
+
+        if (roomId) {
+            conditions.push({ _id: roomId });
+        }
 
         if (searchQuery) {
             conditions.push({
@@ -305,7 +310,7 @@ export const searchRooms = async (req: Request, res: Response): Promise<void> =>
             conditions.push({ price: priceFilter });
         }
 
-        // Filtering by boolean amenities
+        // Lọc theo các tiện nghi (Boolean)
         if (wifi === 'true') conditions.push({ 'amenities.wifi': true });
         if (airConditioner === 'true') conditions.push({ 'amenities.airConditioner': true });
         if (breakfast === 'true') conditions.push({ 'amenities.breakfast': true });
@@ -319,13 +324,16 @@ export const searchRooms = async (req: Request, res: Response): Promise<void> =>
         else sortOption = { createdAt: -1 };
 
         let rooms = await roomModel.find(filter).sort(sortOption).lean() as any[];
+        console.log(`[DEBUG] searchRooms found ${rooms.length} rooms. Filter:`, JSON.stringify(filter));
 
         // Kiểm tra phòng trống theo ngày
+        // Sử dụng logic UTC để tránh lệch múi giờ
         let targetCheckIn = checkIn ? new Date(checkIn as string) : new Date();
         let targetCheckOut = checkOut ? new Date(checkOut as string) : new Date(new Date().setDate(new Date().getDate() + 1));
         
-        targetCheckIn.setHours(0,0,0,0);
-        targetCheckOut.setHours(0,0,0,0);
+        // Chuẩn hóa về 00:00:00 UTC
+        targetCheckIn = new Date(Date.UTC(targetCheckIn.getFullYear(), targetCheckIn.getMonth(), targetCheckIn.getDate()));
+        targetCheckOut = new Date(Date.UTC(targetCheckOut.getFullYear(), targetCheckOut.getMonth(), targetCheckOut.getDate()));
 
         // Lấy danh sách các đơn trùng ngày
         const overlappingBookings = await bookingModel.find({
@@ -333,6 +341,7 @@ export const searchRooms = async (req: Request, res: Response): Promise<void> =>
             checkInDate: { $lt: targetCheckOut },
             checkOutDate: { $gt: targetCheckIn }
         });
+        console.log(`[DEBUG] Found ${overlappingBookings.length} overlapping bookings for interval ${targetCheckIn.toISOString()} to ${targetCheckOut.toISOString()}`);
 
         // Đếm số lượng loại phòng đã được đặt trong những ngày này
         const bookedCountByRoom: Record<string, number> = {};
@@ -355,12 +364,14 @@ export const searchRooms = async (req: Request, res: Response): Promise<void> =>
             const booked = bookedCountByRoom[room._id.toString()] || 0;
             let baseAvailable = Number(room.availableRooms || 0);
 
-            // Khôi phục capacity ảo (1) cho các phòng bị dữ liệu cũ trừ xuống 0 nhưng thực tế không có ai đặt
-            if (baseAvailable <= 0 && booked === 0) {
+            // Khôi phục capacity ảo (ít nhất là 1) cho các phòng bị dữ liệu kẹt (như -1, 0) mà thực tế không có ai đặt
+            if (baseAvailable < 1 && booked === 0) {
                  baseAvailable = 1; 
             }
 
             const currentAvail = Math.max(0, baseAvailable - booked);
+            
+            console.log(`[DEBUG] Room ${room.name} (ID: ${room._id}): baseAvail=${room.availableRooms}, booked=${booked}, finalAvail=${currentAvail}`);
             
             return {
                 ...room,

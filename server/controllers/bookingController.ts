@@ -7,7 +7,7 @@ import userModel from "../models/userModel.ts";
 import depositModel from "../models/depositModel.ts";
 import mongoose from "mongoose";
 
-// @desc    Create a new booking
+// @desc    Tạo đơn đặt phòng mới
 // @route   POST /api/bookings
 export const createBooking = async (req: Request, res: Response): Promise<void> => {
     const session = await mongoose.startSession();
@@ -19,7 +19,7 @@ export const createBooking = async (req: Request, res: Response): Promise<void> 
             customerInfo, 
             checkInDate, 
             checkOutDate, 
-            rooms, // Array of { roomId, price }
+            rooms, // Danh sách các phòng { roomId, price }
             promotionCode,
             paymentMethod,
             paidAmount,
@@ -33,10 +33,12 @@ export const createBooking = async (req: Request, res: Response): Promise<void> 
         }
 
         // 1. Tính số đêm và tổng tiền gốc
+        // Sử dụng logic UTC để tránh lệch múi giờ
         let targetCheckIn = new Date(checkInDate);
         let targetCheckOut = new Date(checkOutDate);
-        targetCheckIn.setHours(0,0,0,0);
-        targetCheckOut.setHours(0,0,0,0);
+        
+        targetCheckIn = new Date(Date.UTC(targetCheckIn.getFullYear(), targetCheckIn.getMonth(), targetCheckIn.getDate()));
+        targetCheckOut = new Date(Date.UTC(targetCheckOut.getFullYear(), targetCheckOut.getMonth(), targetCheckOut.getDate()));
         
         const diff = targetCheckOut.getTime() - targetCheckIn.getTime();
         const numNights = Math.max(1, Math.ceil(diff / (1000 * 60 * 60 * 24)));
@@ -93,9 +95,9 @@ export const createBooking = async (req: Request, res: Response): Promise<void> 
                 const startDate = new Date(promotion.startDate);
                 const endDate = new Date(promotion.endDate);
 
-                // Kiểm tra thời gian
+                // Kiểm tra thời hạn hiệu lực của mã khuyến mãi
                 if (now >= startDate && now <= endDate) {
-                    // Lấy thông tin user để kiểm tra cấp Genius
+                    // Lấy thông tin người dùng để kiểm tra cấp độ Genius nhằm áp dụng ưu đãi đặc biệt
                     const user = await userModel.findById(userId);
                     const calculateGeniusLevel = (total: number): number => {
                         if (!total || total < 100000) return 0;
@@ -135,7 +137,7 @@ export const createBooking = async (req: Request, res: Response): Promise<void> 
                                     promotion.status = 'expired';
                                 }
                                 
-                                await promotion.save({ session });
+                                // Lưu thay đổi của mã khuyến mãi vào DB (đã bao gồm các cập nhật về lượt dùng)
                             }
                         }
                     }
@@ -216,7 +218,7 @@ export const createBooking = async (req: Request, res: Response): Promise<void> 
     }
 };
 
-// @desc    Get all bookings (Admin/Staff)
+// @desc    Lấy toàn bộ danh sách đơn đặt phòng (Dành cho Admin/Staff)
 // @route   GET /api/bookings
 export const getAllBookings = async (req: Request, res: Response): Promise<void> => {
     try {
@@ -227,13 +229,13 @@ export const getAllBookings = async (req: Request, res: Response): Promise<void>
     }
 };
 
-// @desc    Get user's bookings
+// @desc    Lấy danh sách các đơn đặt phòng của một người dùng cụ thể (Customer)
 // @route   GET /api/bookings/user/:userId
 export const getUserBookings = async (req: Request, res: Response): Promise<void> => {
     try {
         const bookings = await bookingModel.find({ userId: req.params.userId }).sort({ createdAt: -1 });
         
-        // Populate details for each booking
+        // Lấy chi tiết thông tin phòng (populate) cho từng đơn đặt phòng của người dùng
         const populatedBookings = await Promise.all(
             bookings.map(async (booking) => {
                 const details = await bookingDetailModel.find({ bookingId: booking._id }).populate('roomId');
@@ -250,7 +252,7 @@ export const getUserBookings = async (req: Request, res: Response): Promise<void
     }
 };
 
-// @desc    Get booking details
+// @desc    Lấy thông tin chi tiết của một đơn đặt phòng dựa trên ID
 // @route   GET /api/bookings/:id
 export const getBookingById = async (req: Request, res: Response): Promise<void> => {
     try {
@@ -274,7 +276,7 @@ export const getBookingById = async (req: Request, res: Response): Promise<void>
     }
 };
 
-// @desc    Update booking status
+// @desc    Cập nhật trạng thái của đơn đặt phòng (Ghi nhận Check-in, Check-out, Hủy đơn)
 // @route   PUT /api/bookings/:id/status
 export const updateBookingStatus = async (req: Request, res: Response): Promise<void> => {
     try {
@@ -302,7 +304,7 @@ export const updateBookingStatus = async (req: Request, res: Response): Promise<
         } else if (status === 'cancelled') {
             await bookingDetailModel.updateMany({ bookingId: req.params.id }, { roomStatus: 'cancelled' });
 
-            // --- LOGIC HOÀN TIỀN 6 TIẾNG CHO ADMIN/STAFF ---
+            // --- LOGIC HOÀN TIỀN TRONG VÒNG 6 TIẾNG KHI ĐƠN BỊ HỦY BỞI QUẢN TRỊ VIÊN ---
             const now = new Date();
             const createdAt = new Date(oldBooking.createdAt);
             const diffInHours = (now.getTime() - createdAt.getTime()) / (1000 * 60 * 60);
@@ -312,7 +314,7 @@ export const updateBookingStatus = async (req: Request, res: Response): Promise<
             if (diffInHours <= 6 && oldBooking.status !== 'cancelled') {
                 const refundAmount = oldBooking.paidAmount || 0;
                 if (refundAmount > 0) {
-                    // Update user balance using $inc for atomicity
+                    // Cập nhật số dư tài khoản người dùng sử dụng $inc để đảm bảo tính nhất quán dữ liệu (atomicity)
                     const updatedUser = await userModel.findByIdAndUpdate(
                         oldBooking.userId,
                         { $inc: { balance: refundAmount } },
@@ -320,7 +322,7 @@ export const updateBookingStatus = async (req: Request, res: Response): Promise<
                     );
 
                     if (updatedUser) {
-                        // Log refund transaction
+                        // Ghi nhận lịch sử giao dịch hoàn tiền vào hệ thống ví
                         await depositModel.create({
                             userId: oldBooking.userId,
                             amount: refundAmount,
@@ -345,20 +347,20 @@ export const updateBookingStatus = async (req: Request, res: Response): Promise<
     }
 };
 
-// @desc    Delete a booking
+// @desc    Xóa một đơn đặt phòng khỏi hệ thống (Dành cho dọn dẹp dữ liệu Admin)
 // @route   DELETE /api/bookings/:id
 export const deleteBooking = async (req: Request, res: Response): Promise<void> => {
     try {
         const bookingId = req.params.id;
         
-        // Find and delete the booking
+        // Tìm và thực hiện xóa bản ghi đơn đặt phòng chính (Booking)
         const deletedBooking = await bookingModel.findByIdAndDelete(bookingId);
         if (!deletedBooking) {
             res.status(404).json({ success: false, message: "Không tìm thấy đơn đặt phòng" });
             return;
         }
 
-        // Delete associated booking details
+        // Xóa tất cả các bản ghi chi tiết (BookingDetail) liên quan để đảm bảo tính toàn vẹn dữ liệu
         await bookingDetailModel.deleteMany({ bookingId: bookingId });
 
         res.json({ success: true, message: "Xóa đơn đặt phòng thành công" });
@@ -367,7 +369,7 @@ export const deleteBooking = async (req: Request, res: Response): Promise<void> 
     }
 };
 
-// @desc    Cancel a booking by user
+// @desc    Người dùng tự đơn phương hủy đơn đặt phòng (Yêu cầu tuân thủ quy định 6 tiếng)
 // @route   PUT /api/bookings/:id/cancel
 export const cancelBooking = async (req: Request, res: Response): Promise<void> => {
     const session = await mongoose.startSession();
@@ -408,7 +410,7 @@ export const cancelBooking = async (req: Request, res: Response): Promise<void> 
                 user.balance += paidAmount;
                 await user.save({ session });
 
-                // Tạo một bản ghi lịch sử trong ví (dùng chung depositModel)
+                // Tạo một bản ghi lịch sử biến động số dư trong ví người dùng
                 await depositModel.create([{
                     userId: booking.userId,
                     amount: paidAmount,

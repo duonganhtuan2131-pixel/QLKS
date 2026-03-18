@@ -15,11 +15,11 @@ const app = express();
 
 await connectDB();
 
-//Middlewares
+// Cấu hình Middleware (Các phần mềm trung gian)
 app.use(cors());
 app.use(express.json());
 
-//Routes
+// Định nghĩa các luồng API (Routes)
 app.use("/api/user", userRouter);
 app.use("/api/room-types", roomTypeRouter);
 app.use("/api/rooms", roomRouter);
@@ -30,11 +30,11 @@ app.use("/api/bookings", bookingRouter);
 
 app.get('/', (_req: Request, res: Response) => res.send('API is working'));
 
-// Global Error Handler
+// Bộ xử lý lỗi toàn cục (Global Error Handler)
 app.use((err: any, _req: Request, res: Response, _next: any) => {
     console.error("Global Error Handler:", err);
     
-    // Handle Multer Errors
+    // Xử lý các lỗi liên quan đến Multer (Tải tệp tin)
     if (err.code === 'LIMIT_FILE_SIZE') {
         return res.status(400).json({ success: false, message: "File quá lớn! Vui lòng chọn ảnh dưới 5MB." });
     }

@@ -6,28 +6,28 @@ import imagekit from "../config/imagekit.ts";
 import sendMail from "../utils/sendMail.ts";
 import otpModel from "../models/otpModel.ts";
 
-// Function to generate JWT
+// Hàm để tạo JWT (JSON Web Token)
 const createToken = (id: string): string => {
     return jwt.sign({ id }, process.env.JWT_SECRET!, { expiresIn: '7d' });
 };
 
-// API to register user
+// API để đăng ký người dùng mới
 const registerUser = async (req: Request, res: Response): Promise<void> => {
     try {
         const { full_name, email, phone, password } = req.body;
 
-        // Checking if user already exists
+        // Kiểm tra xem người dùng đã tồn tại chưa
         const exists = await userModel.findOne({ email });
         if (exists) {
             res.status(400).json({ success: false, message: "User already exists with this email" });
             return;
         }
 
-        // Hashing user password
+        // Mã hóa mật khẩu người dùng
         const salt = await bcrypt.genSalt(10);
         const hashedPassword = await bcrypt.hash(password, salt);
 
-        // Creating new user
+        // Tạo người dùng mới
         const newUser = new userModel({
             full_name,
             email,
@@ -61,7 +61,7 @@ const registerUser = async (req: Request, res: Response): Promise<void> => {
     }
 };
 
-// API to login user
+// API để đăng nhập người dùng
 const loginUser = async (req: Request, res: Response): Promise<void> => {
     try {
         const { email, password } = req.body;
@@ -103,7 +103,7 @@ const loginUser = async (req: Request, res: Response): Promise<void> => {
     }
 };
 
-// API to get all users (Admin only ideally, but keeping it simple)
+// API để lấy tất cả người dùng (Cho Admin)
 const allUsers = async (_req: Request, res: Response): Promise<void> => {
     try {
         const users = await userModel.find({}).select("-password");
@@ -115,7 +115,7 @@ const allUsers = async (_req: Request, res: Response): Promise<void> => {
 };
 
 // Phân quyền
-// API to update user role
+// API để cập nhật quyền (vai trò) của người dùng
 const changeRole = async (req: Request, res: Response): Promise<void> => {
     try {
         const { userId, role } = req.body;
@@ -127,7 +127,7 @@ const changeRole = async (req: Request, res: Response): Promise<void> => {
     }
 };
 
-// API for Admin to update any user's password
+// API dành cho Admin để cập nhật mật khẩu của bất kỳ người dùng nào
 const adminUpdatePassword = async (req: Request, res: Response): Promise<void> => {
     try {
         const { userId, newPassword } = req.body;
@@ -148,7 +148,7 @@ const adminUpdatePassword = async (req: Request, res: Response): Promise<void> =
     }
 };
 
-// API for Admin to create a new user
+// API dành cho Admin để tạo người dùng mới trực tiếp
 const adminCreateUser = async (req: Request, res: Response): Promise<void> => {
     try {
         const { full_name, email, phone, password, role, balance } = req.body;
@@ -208,7 +208,7 @@ const adminCreateUser = async (req: Request, res: Response): Promise<void> => {
 };
 
 
-// API for Admin to update user info
+// API dành cho Admin để cập nhật thông tin người dùng
 const adminUpdateUser = async (req: Request, res: Response): Promise<void> => {
     try {
         const { userId, id, full_name, email, phone, role, balance } = req.body;
@@ -228,7 +228,7 @@ const adminUpdateUser = async (req: Request, res: Response): Promise<void> => {
 
 
 
-        // Check if email is already taken by another user
+        // Kiểm tra xem email đã được sử dụng bởi người dùng khác chưa
         const existingUser = await userModel.findOne({ email, _id: { $ne: targetId } });
         if (existingUser) {
             res.status(400).json({ success: false, message: "Email đã được sử dụng bởi người dùng khác" });
@@ -268,12 +268,12 @@ const adminUpdateUser = async (req: Request, res: Response): Promise<void> => {
 };
 
 
-// API for Admin to delete a user
+// API dành cho Admin để xóa người dùng
 const deleteUser = async (req: Request, res: Response): Promise<void> => {
     try {
         const { userId } = req.body;
         
-        // Find user to check exists
+        // Tìm người dùng để kiểm tra sự tồn tại
         const user = await userModel.findById(userId);
         if (!user) {
             res.status(404).json({ success: false, message: "Người dùng không tồn tại" });
@@ -288,7 +288,7 @@ const deleteUser = async (req: Request, res: Response): Promise<void> => {
     }
 };
 
-// API to get single user
+// API để lấy thông tin một người dùng cụ thể
 const getUser = async (req: Request, res: Response): Promise<void> => {
     try {
         const { userId } = req.params;
@@ -304,7 +304,7 @@ const getUser = async (req: Request, res: Response): Promise<void> => {
     }
 };
 
-// API to send OTP to Google Email
+// API để gửi mã OTP đến Google Email
 const sendOTP = async (req: Request, res: Response): Promise<void> => {
     try {
         const { email, checkExist } = req.body;
@@ -322,17 +322,17 @@ const sendOTP = async (req: Request, res: Response): Promise<void> => {
             }
         }
 
-        // Generate 6 digit OTP
+        // Tạo mã OTP ngẫu nhiên gồm 6 chữ số
         const otp = Math.floor(100000 + Math.random() * 900000).toString();
 
-        // Save OTP to DB with 5 min expiry
+        // Lưu OTP vào DB với thời gian hết hạn là 5 phút
         await otpModel.findOneAndUpdate(
             { email },
             { otp, expiresAt: new Date(Date.now() + 5 * 60 * 1000) },
             { upsert: true, returnDocument: 'after' }
         );
 
-        // Send Email
+        // Gửi Email chứa mã OTP
         try {
             await sendMail(
                 email,
@@ -352,7 +352,7 @@ const sendOTP = async (req: Request, res: Response): Promise<void> => {
     }
 };
 
-// API to login with OTP
+// API để đăng nhập bằng mã OTP (Email)
 const loginWithOTP = async (req: Request, res: Response): Promise<void> => {
     try {
         const { email, otp } = req.body;
@@ -369,16 +369,16 @@ const loginWithOTP = async (req: Request, res: Response): Promise<void> => {
             return;
         }
 
-        // OTP is valid, delete it
+        // OTP hợp lệ, sau đó xóa mã này khỏi DB
         await otpModel.deleteOne({ _id: otpData._id });
 
-        // Find or create user
+        // Tìm hoặc tạo người dùng mới dựa trên email
         let user = await userModel.findOne({ email });
 
         if (!user) {
-            // New user registration via Email Verification
+            // Đăng ký người dùng mới thông qua Xác thực Email (Google)
             user = new userModel({
-                full_name: email.split('@')[0], // Default name from email
+                full_name: email.split('@')[0], // Tên mặc định lấy từ email
                 email,
                 avatar: "", 
             });
@@ -410,7 +410,7 @@ const loginWithOTP = async (req: Request, res: Response): Promise<void> => {
     }
 };
 
-// API to verify OTP only (for Forgot Password)
+// API chỉ để xác thực OTP (dùng cho tính năng Quên mật khẩu)
 const verifyOTPOnly = async (req: Request, res: Response): Promise<void> => {
     try {
         const { email, otp } = req.body;
@@ -428,12 +428,12 @@ const verifyOTPOnly = async (req: Request, res: Response): Promise<void> => {
     }
 };
 
-// API to Reset Password after OTP verification
+// API để đặt lại mật khẩu sau khi đã xác thực OTP thành công
 const resetPassword = async (req: Request, res: Response): Promise<void> => {
     try {
         const { email, otp, newPassword } = req.body;
 
-        // Verify OTP again for security
+        // Xác thực lại OTP một lần nữa để bảo mật
         const otpData = await otpModel.findOne({ email, otp });
         if (!otpData) {
             res.status(400).json({ success: false, message: "Phiên làm việc hết hạn, vui lòng gửi lại OTP" });

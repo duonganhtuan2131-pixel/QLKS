@@ -31,6 +31,8 @@ const Booking: React.FC = () => {
     const [checkOut, setCheckOut] = useState<string>(location.state?.checkOut || new Date(new Date().setDate(new Date().getDate() + 1)).toISOString().split('T')[0]);
     const [numNights, setNumNights] = useState<number>(location.state?.numNights || 1);
     const [checkInTime, setCheckInTime] = useState<string>(location.state?.checkInTime || 'Tôi chưa biết');
+    const [isRoomAvailable, setIsRoomAvailable] = useState<boolean>(true);
+    const [checkingAvailability, setCheckingAvailability] = useState<boolean>(false);
 
     const calculateNights = (start: string, end: string) => {
         const d1 = new Date(start);
@@ -43,6 +45,38 @@ const Booking: React.FC = () => {
     useEffect(() => {
         setNumNights(calculateNights(checkIn, checkOut));
     }, [checkIn, checkOut]);
+
+    // Kiểm tra tính khả dụng (trống) của phòng trong thời gian đã chọn
+    useEffect(() => {
+        const checkAvailability = async () => {
+            if (!room || !checkIn || !checkOut) return;
+            
+            setCheckingAvailability(true);
+            try {
+                const response = await axios.get(`${backendUrl}/api/rooms/search`, {
+                    params: {
+                        roomId: room._id || (room as any).id,
+                        checkIn,
+                        checkOut
+                    }
+                });
+                
+                if (response.data.success && response.data.data.length > 0) {
+                    const foundRoom = response.data.data[0];
+                    setIsRoomAvailable(foundRoom.availableRooms > 0);
+                } else {
+                    setIsRoomAvailable(false);
+                }
+            } catch (error) {
+                console.error("Error checking availability:", error);
+                setIsRoomAvailable(true); 
+            } finally {
+                setCheckingAvailability(false);
+            }
+        };
+
+        checkAvailability();
+    }, [checkIn, checkOut, room, backendUrl]);
 
     const getDatesInRange = (startDate: string, endDate: string) => {
         const start = new Date(startDate);
@@ -78,6 +112,7 @@ const Booking: React.FC = () => {
     const totalAmount = (room?.price || 0) * numNights;
     const finalAmount = totalAmount - discountInfo.amount;
 
+    // Xác định đơn vị tính giá dựa trên loại phòng (ngày/đêm/tiếng/buổi)
     const getPriceUnit = () => {
         const typeName = (room?.roomType || "").toString().toLowerCase();
         if (typeName.includes('karaoke')) return 'tiếng';
@@ -129,28 +164,28 @@ const Booking: React.FC = () => {
                     return;
                 }
 
-                // Kiểm tra cấp Genius
+                // Kiểm tra cấp độ khách hàng thân thiết (Genius)
                 if (promo.minGeniusLevel > userGeniusLevel) {
                     setDiscountInfo({ percent: 0, amount: 0 });
                     toast.error(`Mã này yêu cầu cấp Genius ${promo.minGeniusLevel}. Cấp hiện tại của bạn là ${userGeniusLevel}.`);
                     return;
                 }
 
-                // Kiểm tra giới hạn lượt dùng của mã
+                // Kiểm tra giới hạn số lượt sử dụng của mã giảm giá
                 if (promo.usageLimit > 0 && promo.usedCount >= promo.usageLimit) {
                     setDiscountInfo({ percent: 0, amount: 0 });
                     toast.error("Mã giảm giá này đã hết lượt sử dụng");
                     return;
                 }
 
-                // Kiểm tra xem user đã dùng mã này chưa
+                // Kiểm tra xem người dùng hiện tại đã sử dụng mã này chưa
                 if (promo.usedBy && userData && promo.usedBy.includes(userData._id || userData.id)) {
                     setDiscountInfo({ percent: 0, amount: 0 });
                     toast.error("Bạn đã sử dụng mã này cho đơn đặt phòng trước đó");
                     return;
                 }
 
-                // Kiểm tra loại phòng có được áp dụng không
+                // Kiểm tra xem mã giảm giá có áp dụng cho loại phòng này không
                 if (promo.roomTypes && promo.roomTypes.length > 0) {
                     const isApplicableRoom = promo.roomTypes.some((rt: any) => {
                         if (typeof rt === 'string') return rt === room.roomType;
@@ -212,7 +247,7 @@ const Booking: React.FC = () => {
         <div className="bg-[#f5f7f8] min-h-screen font-['Inter',_sans-serif] text-slate-900">
 
             <main className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-                {/* Back Button */}
+                {/* Nút quay lại */}
                 <button
                     onClick={() => navigate('/rooms', { state: { openRoom: room } })}
                     className="flex items-center gap-2 text-[#003580] font-black hover:text-[#002a6b] transition-all mb-6 group bg-white px-4 py-2 rounded-xl border border-slate-200 shadow-sm hover:shadow-md"
@@ -221,7 +256,7 @@ const Booking: React.FC = () => {
                     Quay lại trang chi tiết phòng
                 </button>
 
-                {/* Progress Stepper */}
+                {/* Thanh tiến trình các bước đặt phòng */}
                 <div className="mb-8">
                     <div className="flex items-center justify-between mb-2">
                         <span className="text-sm font-bold text-[#003580]">Bước 2: Thông tin chi tiết của bạn</span>
@@ -233,7 +268,7 @@ const Booking: React.FC = () => {
                 </div>
 
                 <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-                    {/* Left Column: User Information */}
+                    {/* Cột trái: Form nhập thông tin người dùng */}
                     <div className="lg:col-span-2 space-y-6">
                         <div className="bg-white p-8 rounded-2xl border border-slate-200 shadow-sm">
                             <h2 className="text-2xl font-black mb-8 flex items-center gap-3 text-[#003580]">
@@ -308,6 +343,14 @@ const Booking: React.FC = () => {
                                     <span className="text-sm font-bold text-[#003580]">Tổng thời gian lưu trú:</span>
                                     <span className="text-sm font-black text-[#003580]">{numNights} {priceUnit}</span>
                                 </div>
+                                {!isRoomAvailable && !checkingAvailability && (
+                                    <div className="col-span-2 p-4 bg-rose-50 rounded-xl border border-rose-100 flex items-center gap-3 animate-pulse">
+                                        <span className="material-symbols-outlined text-rose-500">error</span>
+                                        <span className="text-sm font-bold text-rose-600">
+                                            Phòng này hôm nay đã đầy. Quý khách hãy chọn thời gian khác
+                                        </span>
+                                    </div>
+                                )}
                             </div>
 
                             <div className="mt-8 pt-8 border-t border-slate-100">
@@ -319,7 +362,7 @@ const Booking: React.FC = () => {
                                 <div className="flex gap-4 overflow-x-auto pb-8 scrollbar-hide px-1">
                                     {[new Date(checkIn)].map((date, idx) => {
                                         const dateStr = date.toISOString().split('T')[0];
-                                        const isCheckInDay = true; // Since we only show the check-in day
+                                        const isCheckInDay = true; // Chỉ hiển thị ngày nhận phòng hiện tại
                                         const weekDay = date.toLocaleDateString('vi-VN', { weekday: 'short' });
                                         const dayMonth = date.toLocaleDateString('vi-VN', { day: '2-digit', month: '2-digit' });
 
@@ -339,7 +382,7 @@ const Booking: React.FC = () => {
                                                     )}
                                                 </div>
 
-                                                {/* Popover on hover */}
+                                                {/* Cửa sổ chọn giờ khi di chuột vào (Popover) */}
                                                 <div className="absolute top-[85%] left-0 z-[100] hidden group-hover:block pt-4 animate-in fade-in zoom-in duration-200">
                                                     <div className="w-[380px] bg-white rounded-[2rem] shadow-[0_20px_600px_-15px_rgba(0,0,0,0.3)] border border-slate-100 p-6 relative">
                                                         <div className="absolute -top-2 left-10 w-4 h-4 bg-white rotate-45 border-l border-t border-slate-100"></div>
@@ -397,7 +440,7 @@ const Booking: React.FC = () => {
                         </div>
                     </div>
 
-                    {/* Right Sidebar: Summary */}
+                    {/* Cột phải: Tóm tắt thông tin đơn hàng */}
                     <div className="space-y-6 text-left">
                         <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
                             <div className="relative h-48">
@@ -470,10 +513,17 @@ const Booking: React.FC = () => {
 
                                         <button
                                             onClick={handleConfirmBooking}
-                                            className="w-full bg-[#ec5b13] hover:bg-[#d44d0b] text-white font-black py-5 rounded-2xl shadow-xl shadow-orange-100 transition-all active:scale-95 flex items-center justify-center gap-3 text-sm uppercase tracking-widest"
+                                            disabled={!isRoomAvailable || checkingAvailability}
+                                            className={`w-full font-black py-5 rounded-2xl shadow-xl transition-all flex items-center justify-center gap-3 text-sm uppercase tracking-widest ${
+                                                (!isRoomAvailable || checkingAvailability) 
+                                                ? 'bg-gray-400 cursor-not-allowed text-white/50' 
+                                                : 'bg-[#ec5b13] hover:bg-[#d44d0b] text-white shadow-orange-100 active:scale-95'
+                                            }`}
                                         >
-                                            Xác nhận và Thanh toán
-                                            <span className="material-symbols-outlined font-black">arrow_forward</span>
+                                            {checkingAvailability ? 'Đang kiểm tra...' : !isRoomAvailable ? 'Phòng đã hết chỗ' : 'Xác nhận và Thanh toán'}
+                                            <span className="material-symbols-outlined font-black">
+                                                {checkingAvailability ? 'sync' : !isRoomAvailable ? 'block' : 'arrow_forward'}
+                                            </span>
                                         </button>
                                     </div>
                                 </div>

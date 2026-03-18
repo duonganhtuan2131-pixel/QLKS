@@ -19,7 +19,7 @@ const Viewdetails: React.FC<ViewdetailsProps> = ({ room, onClose }) => {
     if (!room) return null;
 
 
-    // Helper to get safe amenities even from old records
+    // Hàm hỗ trợ để lấy danh sách tiện nghi an toàn (kể cả từ các bản ghi cũ)
     const safeAmenities = (room.amenities && !Array.isArray(room.amenities)) ? room.amenities : {
         wifi: false,
         airConditioner: false,
@@ -63,7 +63,7 @@ const Viewdetails: React.FC<ViewdetailsProps> = ({ room, onClose }) => {
         <div className="bg-[#f8f6f6] min-h-screen font-['Public_Sans',_sans-serif] text-slate-900 pb-0">
             <Navbar />
 
-            {/* Sub-header with back button */}
+            {/* Thanh tiêu đề phụ với nút quay lại */}
             <div className="bg-[#003580] text-white px-4 md:px-10 py-3 border-t border-white/10 shadow-lg sticky top-[132px] md:top-[145px] z-40">
                 <div className="max-w-7xl mx-auto flex items-center gap-4">
                     <button onClick={onClose} className="p-2 hover:bg-white/10 rounded-full transition-colors flex items-center justify-center">
@@ -75,7 +75,7 @@ const Viewdetails: React.FC<ViewdetailsProps> = ({ room, onClose }) => {
 
 
             <main className="max-w-[1140px] mx-auto px-4 py-6 flex flex-col gap-6">
-                {/* Progress Stepper */}
+                {/* Thanh tiến trình các bước đặt phòng */}
                 <div className="mb-2">
                     <div className="flex items-center justify-between mb-2">
                         <span className="text-sm font-bold text-[#003580]">Bước 1: Xem thông tin phòng</span>
@@ -86,7 +86,7 @@ const Viewdetails: React.FC<ViewdetailsProps> = ({ room, onClose }) => {
                     </div>
                 </div>
 
-                {/* Image Gallery Grid */}
+                {/* Lưới hiển thị thư viện hình ảnh */}
                 <section className="grid grid-cols-4 grid-rows-2 gap-2 h-[300px] md:h-[450px] overflow-hidden rounded-xl">
                     <div 
                         className="col-span-2 row-span-2 relative group cursor-pointer overflow-hidden bg-gray-200"
@@ -132,7 +132,7 @@ const Viewdetails: React.FC<ViewdetailsProps> = ({ room, onClose }) => {
 
 
                 <div className="flex flex-col lg:flex-row gap-8">
-                    {/* Left Content: Info and Amenities */}
+                    {/* Nội dung bên trái: Thông tin chi tiết và Tiện nghi */}
                     <div className="flex-1 space-y-6">
                         <div>
                             <div className="flex items-center gap-2 mb-2">
@@ -154,21 +154,7 @@ const Viewdetails: React.FC<ViewdetailsProps> = ({ room, onClose }) => {
                             </p>
                         </div>
 
-                        <div className="flex flex-wrap gap-4">
-                            <div className={`flex items-center gap-2 px-3 py-1.5 rounded-lg border ${room.status === 'available'
-                                ? 'bg-green-100 text-green-700 border-green-200'
-                                : 'bg-rose-100 text-rose-700 border-rose-200'
-                                }`}>
-                                <span className="material-symbols-outlined">{room.status === 'available' ? 'check_circle' : 'cancel'}</span>
-                                <span className="text-sm font-semibold">{room.status === 'available' ? 'Còn trống' : 'Hết phòng'}</span>
-                            </div>
-                            {room.availableRooms <= 3 && room.availableRooms > 0 && (
-                                <div className="flex items-center gap-2 bg-orange-100 text-[#ec5b13] px-3 py-1.5 rounded-lg border border-orange-200">
-                                    <span className="material-symbols-outlined">error</span>
-                                    <span className="text-sm font-semibold">Chỉ còn {room.availableRooms} phòng cuối cùng!</span>
-                                </div>
-                            )}
-                        </div>
+                        {/* Các nhãn trạng thái đã được gỡ bỏ theo yêu cầu để ẩn thông tin còn/hết phòng với khách */}
 
                         <section>
                             <h3 className="text-xl font-bold mb-4">Mô tả phòng</h3>
@@ -242,7 +228,7 @@ const Viewdetails: React.FC<ViewdetailsProps> = ({ room, onClose }) => {
                             </div>
                         </section>
 
-                        {/* Reviews Section */}
+                        {/* Phần Đánh giá của khách hàng */}
                         <section className="border-t border-slate-200 pt-6">
 
                             <div className="flex items-center justify-between mb-6">
@@ -280,10 +266,10 @@ const Viewdetails: React.FC<ViewdetailsProps> = ({ room, onClose }) => {
                         </section>
                     </div>
 
-                    {/* Right Content: Booking Card */}
+                    {/* Nội dung bên phải: Thẻ đặt phòng (Booking Card) */}
                     <aside className="w-full lg:w-[360px] relative">
                         <div className="sticky top-[180px] md:top-[200px] space-y-6">
-                            {/* Booking Card */}
+                            {/* Thẻ đặt phòng hiển thị giá và nút CTA */}
                             <div className="border border-slate-200 rounded-xl overflow-hidden shadow-xl bg-white">
                                 <div className="bg-[#003580] p-5 text-white">
                                     <p className="text-xs uppercase tracking-widest opacity-80 mb-1">Giá mỗi {priceUnit}</p>
@@ -321,18 +307,11 @@ const Viewdetails: React.FC<ViewdetailsProps> = ({ room, onClose }) => {
                                         </div>
                                     </div>
                                     <button 
-                                        disabled={room.status === 'sold_out' || (room.availableRooms !== undefined && room.availableRooms <= 0 && room.status !== 'available')}
                                         onClick={() => navigate('/booking', { state: { room } })}
-                                        className={`w-full font-black py-4 rounded-xl shadow-lg transition-all flex items-center justify-center gap-2 text-sm uppercase tracking-wider ${
-                                            (room.status === 'sold_out' || (room.availableRooms !== undefined && room.availableRooms <= 0 && room.status !== 'available'))
-                                            ? 'bg-gray-300 cursor-not-allowed text-gray-500 shadow-none'
-                                            : 'bg-[#ec5b13] hover:bg-[#d44d0b] text-white shadow-orange-100 active:scale-95'
-                                        }`}
+                                        className={`w-full font-black py-4 rounded-xl shadow-lg transition-all flex items-center justify-center gap-2 text-sm uppercase tracking-wider bg-[#ec5b13] hover:bg-[#d44d0b] text-white shadow-orange-100 active:scale-95`}
                                     >
-                                        { (room.status === 'sold_out' || (room.availableRooms !== undefined && room.availableRooms <= 0 && room.status !== 'available')) ? 'Hết phòng' : 'Tiến hành đặt phòng' }
-                                        <span className="material-symbols-outlined font-bold">
-                                            {(room.status === 'sold_out' || (room.availableRooms !== undefined && room.availableRooms <= 0 && room.status !== 'available')) ? 'block' : 'arrow_forward'}
-                                        </span>
+                                        Tiến hành đặt phòng
+                                        <span className="material-symbols-outlined font-bold">arrow_forward</span>
                                     </button>
 
                                     <div className="bg-gray-50 p-3 rounded-lg flex gap-3 items-start">
@@ -344,7 +323,7 @@ const Viewdetails: React.FC<ViewdetailsProps> = ({ room, onClose }) => {
                                 </div>
                             </div>
 
-                            {/* Map Preview */}
+                            {/* Bản đồ xem trước vị trí khách sạn */}
                             <div className="border border-slate-100 rounded-xl overflow-hidden shadow-sm hover:shadow-md transition-shadow">
                                 <div className="h-32 bg-slate-100 relative group">
                                     <div className="absolute inset-0 bg-cover bg-center transition-transform duration-700 group-hover:scale-110" style={{ backgroundImage: "url('https://images.unsplash.com/photo-1524661135-423995f22d0b?q=80&w=400')" }}></div>
@@ -366,13 +345,13 @@ const Viewdetails: React.FC<ViewdetailsProps> = ({ room, onClose }) => {
 
             <Footer />
 
-            {/* Lightbox / Gallery Modal */}
+            {/* Modal hiển thị thư viện ảnh (Lightbox) */}
             {isGalleryOpen && (
                 <div 
                     className="fixed inset-0 z-[200] bg-black/95 flex flex-col items-center justify-center p-4 md:p-10 animate-in fade-in duration-300"
                     onClick={() => setIsGalleryOpen(false)}
                 >
-                    {/* Close button */}
+                    {/* Nút đóng Modal */}
                     <button 
                         className="absolute top-6 right-6 text-white/70 hover:text-white transition-colors"
                         onClick={() => setIsGalleryOpen(false)}
@@ -380,12 +359,12 @@ const Viewdetails: React.FC<ViewdetailsProps> = ({ room, onClose }) => {
                         <span className="material-symbols-outlined text-4xl">close</span>
                     </button>
 
-                    {/* Image Counter */}
+                    {/* Bộ đếm số lượng hình ảnh */}
                     <div className="absolute top-8 left-1/2 -translate-x-1/2 text-white/60 font-medium tracking-widest text-sm uppercase">
                         Hình ảnh {currentImageIdx + 1} / {allImages.length}
                     </div>
 
-                    {/* Main Image Container */}
+                    {/* Khu vực hiển thị ảnh chính */}
                     <div className="relative w-full max-w-5xl h-full flex items-center justify-center pointer-events-none">
                         <img 
                             src={allImages[currentImageIdx]} 
@@ -393,7 +372,7 @@ const Viewdetails: React.FC<ViewdetailsProps> = ({ room, onClose }) => {
                             className="max-w-full max-h-full object-contain shadow-2xl animate-in zoom-in-95 duration-300 pointer-events-auto"
                         />
 
-                        {/* Navigation Buttons */}
+                        {/* Các nút điều hướng ảnh trước/sau */}
                         <button 
                             className="absolute left-0 top-1/2 -translate-y-1/2 w-16 h-16 rounded-full flex items-center justify-center bg-white/5 hover:bg-white/10 text-white transition-all transform -translate-x-4 md:-translate-x-12 pointer-events-auto group"
                             onClick={prevImage}
@@ -408,7 +387,7 @@ const Viewdetails: React.FC<ViewdetailsProps> = ({ room, onClose }) => {
                         </button>
                     </div>
 
-                    {/* Thumbnail Strip (Optional) */}
+                    {/* Dải ảnh thu nhỏ bên dưới (Thumbnail Strip) */}
                     <div className="mt-8 flex gap-2 overflow-x-auto p-2 no-scrollbar max-w-full">
                         {allImages.map((img, i) => (
                             <div 

@@ -13,7 +13,7 @@ const SearchPage: React.FC = () => {
     const location = useLocation();
     const [searchParams, setSearchParams] = useSearchParams();
 
-    // State
+    // Khởi tạo các biến trạng thái (State)
     const [rooms, setRooms] = useState<Room[]>([]);
     const [roomTypes, setRoomTypes] = useState<RoomType[]>([]);
     const [loading, setLoading] = useState<boolean>(true);
@@ -21,22 +21,22 @@ const SearchPage: React.FC = () => {
     const [currentPage, setCurrentPage] = useState<number>(1);
     const roomsPerPage = 5;
 
-    // View Details state
+    // Trạng thái hiển thị Chi tiết phòng (View Details)
     const [selectedRoomForDetails, setSelectedRoomForDetails] = useState<Room | null>(null);
     const [showDetails, setShowDetails] = useState<boolean>(false);
 
-    // Auto-open room detail if coming back from booking
+    // Tự động mở chi tiết phòng nếu quay lại từ bước đặt phòng (thông qua state điều hướng)
     useEffect(() => {
         if (location.state?.openRoom) {
             setSelectedRoomForDetails(location.state.openRoom);
             setShowDetails(true);
-            // Optionally clear location state to prevent re-opening on refresh
+            // Tùy chọn: xóa trạng thái điều hướng để tránh việc tự động mở lại khi làm mới trang (refresh)
             window.history.replaceState({}, document.title);
         }
     }, [location.state]);
 
 
-    // Filter states
+    // Các trạng thái của bộ lọc tìm kiếm (Filters)
     const [query, setQuery] = useState<string>(searchParams.get('query') || '');
     const [capacity, setCapacity] = useState<string>(searchParams.get('capacity') || '');
     const [selectedType, setSelectedType] = useState<string>(searchParams.get('type') || '');
@@ -91,7 +91,7 @@ const SearchPage: React.FC = () => {
         setMinPrice(Number(searchParams.get('minPrice')) || 0);
         setMaxPrice(Number(searchParams.get('maxPrice')) || 5000000);
         setSortBy(searchParams.get('sort') || 'newest');
-        
+
         fetchInitialData();
         fetchRooms();
     }, [searchParams]);
@@ -143,7 +143,7 @@ const SearchPage: React.FC = () => {
 
     return (
         <div className="bg-[#f5f5f5] min-h-screen font-sans">
-            {/* Hero Section - Static at top */}
+            {/* Phần tiêu đề Trang (Hero Section) - Cố định ở trên cùng */}
             <section className="bg-[#003580] text-white pt-8 pb-4 px-4 md:px-10">
                 <div className="max-w-7xl mx-auto">
                     <nav aria-label="Breadcrumb" className="flex text-sm mb-4 opacity-80">
@@ -160,16 +160,16 @@ const SearchPage: React.FC = () => {
                 </div>
             </section>
 
-            {/* Sticky Search & Filter Bar */}
+            {/* Thanh Tìm kiếm & Lọc (Search & Filter Bar) - Cố định khi cuộn trang */}
             <div className="bg-[#003580] px-4 md:px-10 py-6 sticky top-[75px] z-40 shadow-xl border-t border-white/10">
                 <div className="max-w-7xl mx-auto">
 
-                    {/* Search Bar & Filters */}
+                    {/* Thanh Tìm kiếm & Bộ lọc (Search Bar & Filters) */}
                     <form
                         onSubmit={(e) => { e.preventDefault(); handleApplyFilters(); }}
                         className="bg-[#febb02] p-1 rounded-xl flex flex-col gap-1"
                     >
-                        {/* Main Search Row */}
+                        {/* Dòng Tìm kiếm Chính (Main Search Row) */}
                         <div className="flex flex-col lg:flex-row items-stretch gap-1">
                             <div className="flex-1 bg-white rounded-lg flex items-center px-4 py-3 border-2 border-transparent focus-within:border-[#003580] transition-all group">
                                 <span className="material-symbols-outlined text-gray-400 group-focus-within:text-[#003580] mr-3">search</span>
@@ -229,7 +229,7 @@ const SearchPage: React.FC = () => {
                             </button>
                         </div>
 
-                        {/* Filters Row */}
+                        {/* Dòng Bộ lọc mở rộng (Filters Row) */}
                         <div className="flex flex-col lg:flex-row items-stretch gap-1">
                             <div className="flex-1 bg-white rounded-lg flex items-center px-4 py-3 border-2 border-transparent focus-within:border-[#003580] transition-all group">
                                 <span className="material-symbols-outlined text-gray-400 group-focus-within:text-[#003580] mr-2 text-xl">bed</span>
@@ -292,7 +292,7 @@ const SearchPage: React.FC = () => {
 
             <main className="max-w-7xl mx-auto px-4 md:px-10 py-10">
                 <div className="w-full">
-                    {/* Results Content */}
+                    {/* Nội dung kết quả tìm kiếm (Results Content) */}
                     <div className="w-full">
                         <div className="mb-8 flex flex-col md:flex-row md:items-center justify-between gap-4">
                             <div>
@@ -310,7 +310,7 @@ const SearchPage: React.FC = () => {
                             </div>
                         </div>
 
-                        {/* Room Cards List */}
+                        {/* Danh sách các Thẻ phòng (Room Cards List) */}
                         {loading ? (
                             <div className="space-y-6">
                                 {[1, 2, 3].map(i => (
@@ -325,16 +325,16 @@ const SearchPage: React.FC = () => {
                                             key={room._id}
                                             className="bg-white rounded-2xl border border-gray-200 overflow-hidden flex flex-col md:flex-row hover:shadow-2xl transition-all duration-500 cursor-pointer group relative"
                                             onClick={() => {
-                                                if (!checkIn || !checkOut) {
-                                                    toast.warn("Vui lòng nhập Ngày Nhận và Trả phòng trên thanh tìm kiếm để tiếp tục", { position: "top-center" });
-                                                    return;
-                                                }
+                                                // if (!checkIn || !checkOut) {
+                                                //     toast.warn("Vui lòng nhập Ngày Nhận và Trả phòng trên thanh tìm kiếm để tiếp tục", { position: "top-center" });
+                                                //     return;
+                                                // }
                                                 setSelectedRoomForDetails(room);
                                                 setShowDetails(true);
                                             }}
                                         >
 
-                                            {/* Room Image Container */}
+                                            {/* Container chứa hình ảnh phòng */}
                                             <div className="md:w-[320px] h-64 md:h-auto flex-shrink-0 relative overflow-hidden">
                                                 <img
                                                     src={room.thumbnail || (room as any).avatar || 'https://images.unsplash.com/photo-1590490359683-658d3d23f972?q=80&w=600'}
@@ -342,7 +342,7 @@ const SearchPage: React.FC = () => {
                                                     alt={room.name || (room as any).roomNumber}
                                                 />
 
-                                                {/* Top Badges */}
+                                                {/* Các nhãn đặc biệt (Top Badges) */}
                                                 <div className="absolute top-4 left-4 flex flex-col gap-2">
                                                     <span className="bg-[#febb02] text-[#003580] px-3 py-1 rounded-lg text-[10px] font-black uppercase tracking-widest shadow-lg flex items-center gap-1">
                                                         <span className="material-symbols-outlined text-[14px]">bolt</span>
@@ -357,7 +357,7 @@ const SearchPage: React.FC = () => {
                                                 </button>
                                             </div>
 
-                                            {/* Room Details Container */}
+                                            {/* Container chứa chi tiết thông tin phòng */}
                                             <div className="flex-1 p-6 flex flex-col justify-between">
                                                 <div className="flex flex-col md:flex-row justify-between gap-4">
                                                     <div className="flex-1">
@@ -376,10 +376,7 @@ const SearchPage: React.FC = () => {
                                                         </h3>
 
                                                         <div className="flex flex-wrap items-center gap-6 text-sm font-medium text-gray-500 mb-6">
-                                                            <span className="flex items-center gap-2">
-                                                                <span className="material-symbols-outlined text-gray-400 text-lg">group</span>
-                                                                {room.availableRooms} phòng trống
-                                                            </span>
+                                                            {/* Ẩn số lượng phòng trống theo yêu cầu của người dùng để tránh hiển thị trạng thái cụ thể với khách */}
                                                             <span className="flex items-center gap-2">
                                                                 <span className="material-symbols-outlined text-gray-400 text-lg">aspect_ratio</span>
                                                                 {room.size}m²
@@ -399,7 +396,7 @@ const SearchPage: React.FC = () => {
                                                         </div>
                                                     </div>
 
-                                                    {/* Rating box - Right Side */}
+                                                    {/* Nhãn Đánh giá - Phía bên phải (Rating box) */}
                                                     <div className="flex md:flex-col items-end gap-2 text-right">
                                                         <div className="flex items-center gap-3">
                                                             <div className="flex flex-col">
@@ -411,7 +408,7 @@ const SearchPage: React.FC = () => {
                                                     </div>
                                                 </div>
 
-                                                {/* Bottom Price & CTA Bar */}
+                                                {/* Thanh Giá cả & Nút hành động phía dưới (Bottom Price & CTA Bar) */}
                                                 <div className="mt-8 pt-6 border-t border-gray-100 flex flex-col md:flex-row items-end justify-between gap-6">
                                                     <div className="flex-1">
                                                         {!localStorage.getItem('token') && (
@@ -434,13 +431,13 @@ const SearchPage: React.FC = () => {
                                                             <span className="text-3xl font-[900] text-[#1a1a1a]">{formatCurrency(room.price)}₫</span>
                                                         </div>
 
-                                                        <button 
+                                                        <button
                                                             onClick={(e) => {
                                                                 e.stopPropagation();
-                                                                if (!checkIn || !checkOut) {
-                                                                    toast.warn("Vui lòng nhập Ngày Nhận và Trả phòng trên thanh tìm kiếm để tiếp tục", { position: "top-center" });
-                                                                    return;
-                                                                }
+                                                                // if (!checkIn || !checkOut) {
+                                                                //     toast.warn("Vui lòng nhập Ngày Nhận và Trả phòng trên thanh tìm kiếm để tiếp tục", { position: "top-center" });
+                                                                //     return;
+                                                                // }
                                                                 setSelectedRoomForDetails(room);
                                                                 setShowDetails(true);
                                                             }}
@@ -457,7 +454,7 @@ const SearchPage: React.FC = () => {
                                     ))}
                                 </div>
 
-                                {/* Pagination Controls */}
+                                {/* Bộ điều khiển phân trang (Pagination Controls) */}
                                 {totalPages > 1 && (
                                     <div className="mt-10 flex items-center justify-center gap-2">
                                         <button
@@ -512,15 +509,15 @@ const SearchPage: React.FC = () => {
                 </div>
             </main>
 
-            {/* View Details Overlay */}
+            {/* Lớp phủ hiển thị chi tiết phòng khi được chọn (View Details Overlay) */}
             {showDetails && selectedRoomForDetails && (
                 <div className="fixed inset-0 z-[100] overflow-y-auto">
-                    <Viewdetails 
-                        room={selectedRoomForDetails} 
+                    <Viewdetails
+                        room={selectedRoomForDetails}
                         onClose={() => {
                             setShowDetails(false);
                             setSelectedRoomForDetails(null);
-                        }} 
+                        }}
                     />
                 </div>
             )}
