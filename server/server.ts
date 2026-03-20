@@ -3,6 +3,9 @@ import express, { Request, Response } from "express";
 import cors from "cors";
 import connectDB from "./config/db.ts";
 import userRouter from "./routes/userRoute.ts";
+import loginRouter from "./routes/loginRoute.ts";
+import registerRouter from "./routes/registerRoute.ts";
+import forgotRouter from "./routes/forgotRoutes.ts";
 import roomTypeRouter from "./routes/roomTypeRoute.ts";
 import roomRouter from "./routes/roomRoute.ts";
 import vnpayRouter from "./routes/vnpayRoute.ts";
@@ -21,6 +24,9 @@ app.use(express.json());
 
 // Định nghĩa các luồng API (Routes)
 app.use("/api/user", userRouter);
+app.use("/api/login", loginRouter);
+app.use("/api/register", registerRouter);
+app.use("/api/forgot", forgotRouter);
 app.use("/api/room-types", roomTypeRouter);
 app.use("/api/rooms", roomRouter);
 app.use("/api/vnpay", vnpayRouter);

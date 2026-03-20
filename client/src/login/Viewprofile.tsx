@@ -51,7 +51,7 @@ const ViewProfile: React.FC = () => {
             return;
         }
         try {
-            const response = await axios.post(`${backendUrl}/api/user/send-otp`, { email, checkExist: true });
+            const response = await axios.post(`${backendUrl}/api/login/send-otp`, { email, checkExist: true });
             if (response.data.success) {
                 toast.success(response.data.message);
                 setShowOtpInput(true);

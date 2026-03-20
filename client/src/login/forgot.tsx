@@ -25,7 +25,7 @@ const Forgot: React.FC = () => {
         e.preventDefault();
         setLoading(true);
         try {
-            const response = await axios.post<ApiResponse<any>>(`${backendUrl}/api/user/send-otp`, { email: formData.email });
+            const response = await axios.post<ApiResponse<any>>(`${backendUrl}/api/forgot/send-otp`, { email: formData.email });
             if (response.data.success) {
                 toast.success(response.data.message);
                 setStep(2);
@@ -43,7 +43,7 @@ const Forgot: React.FC = () => {
         e.preventDefault();
         setLoading(true);
         try {
-            const response = await axios.post<ApiResponse<any>>(`${backendUrl}/api/user/verify-otp-only`, {
+            const response = await axios.post<ApiResponse<any>>(`${backendUrl}/api/forgot/verify-otp-only`, {
                 email: formData.email,
                 otp: formData.otp
             });
@@ -69,7 +69,7 @@ const Forgot: React.FC = () => {
 
         setLoading(true);
         try {
-            const response = await axios.post<ApiResponse<any>>(`${backendUrl}/api/user/reset-password`, {
+            const response = await axios.post<ApiResponse<any>>(`${backendUrl}/api/forgot/reset-password`, {
                 email: formData.email,
                 otp: formData.otp,
                 newPassword: formData.newPassword

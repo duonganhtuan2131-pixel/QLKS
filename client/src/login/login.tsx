@@ -28,7 +28,7 @@ const Login: React.FC = () => {
         e.preventDefault();
         setLoading(true);
         try {
-            const response = await axios.post<ApiResponse<UserData>>(`${backendUrl}/api/user/login`, {
+            const response = await axios.post<ApiResponse<UserData>>(`${backendUrl}/api/login`, {
                 email: formData.email,
                 password: formData.password
             });
@@ -65,7 +65,7 @@ const Login: React.FC = () => {
         }
         setLoading(true);
         try {
-            const response = await axios.post<ApiResponse<any>>(`${backendUrl}/api/user/send-otp`, { email: formData.email });
+            const response = await axios.post<ApiResponse<any>>(`${backendUrl}/api/login/send-otp`, { email: formData.email });
             if (response.data.success) {
                 toast.success(response.data.message);
                 setOtpSent(true);
@@ -82,7 +82,7 @@ const Login: React.FC = () => {
         e.preventDefault();
         setLoading(true);
         try {
-            const response = await axios.post<ApiResponse<UserData>>(`${backendUrl}/api/user/verify-otp`, {
+            const response = await axios.post<ApiResponse<UserData>>(`${backendUrl}/api/login/verify-otp`, {
                 email: formData.email,
                 otp: formData.otp
             });

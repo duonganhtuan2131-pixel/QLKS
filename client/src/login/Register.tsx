@@ -41,7 +41,7 @@ const Register: React.FC = () => {
 
         setLoading(true);
         try {
-            const response = await axios.post<ApiResponse<UserData>>(`${backendUrl}/api/user/register`, formData);
+            const response = await axios.post<ApiResponse<UserData>>(`${backendUrl}/api/register`, formData);
             
             if (response.data.success) {
                 toast.success(response.data.message);
@@ -66,7 +66,7 @@ const Register: React.FC = () => {
         }
         setLoading(true);
         try {
-            const response = await axios.post<ApiResponse<any>>(`${backendUrl}/api/user/send-otp`, { email: formData.email });
+            const response = await axios.post<ApiResponse<any>>(`${backendUrl}/api/login/send-otp`, { email: formData.email });
             if (response.data.success) {
                 toast.success(response.data.message);
                 setOtpSent(true);
@@ -83,7 +83,7 @@ const Register: React.FC = () => {
         e.preventDefault();
         setLoading(true);
         try {
-            const response = await axios.post<ApiResponse<UserData>>(`${backendUrl}/api/user/verify-otp`, {
+            const response = await axios.post<ApiResponse<UserData>>(`${backendUrl}/api/login/verify-otp`, {
                 email: formData.email,
                 otp: formData.otp
             });
