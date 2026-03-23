@@ -4,6 +4,7 @@ import { useNavigate, Link } from 'react-router-dom';
 import axios from 'axios';
 import { toast } from 'react-toastify';
 import { ApiResponse, UserData } from '../types';
+import authService from '../api/authService';
 
 const Login: React.FC = () => {
     const backendUrl = "http://localhost:3000";
@@ -28,27 +29,15 @@ const Login: React.FC = () => {
         e.preventDefault();
         setLoading(true);
         try {
-            const response = await axios.post<ApiResponse<UserData>>(`${backendUrl}/api/login`, {
-                email: formData.email,
-                password: formData.password
-            });
-
-            if (response.data.success) {
-                toast.success(response.data.message);
-                localStorage.setItem('token', response.data.token || '');
-                const userData = response.data.userData;
-                localStorage.setItem('userData', JSON.stringify(userData || {}));
-                
-                // Redirect based on role
-                if (userData?.role === 'staff') {
-                    window.location.href = '/staff';
-                } else if (userData?.role === 'admin' || userData?.role === 'hotelOwner') {
-                    window.location.href = '/owner';
-                } else {
-                    window.location.href = '/';
-                }
+            const data = await authService.login(formData);
+            
+            if (data.success) {
+                toast.success("Đăng nhập thành công!");
+                localStorage.setItem('token', data.token || '');
+                localStorage.setItem('userData', JSON.stringify(data.userData || {}));
+                window.location.href = '/';
             } else {
-                setErrorMsg(response.data.message);
+                toast.error(data.message);
             }
         } catch (error: any) {
             console.error(error);
@@ -65,9 +54,9 @@ const Login: React.FC = () => {
         }
         setLoading(true);
         try {
-            const response = await axios.post<ApiResponse<any>>(`${backendUrl}/api/login/send-otp`, { email: formData.email });
-            if (response.data.success) {
-                toast.success(response.data.message);
+            const data = await authService.sendOTP(formData.email);
+            if (data.success) {
+                toast.success(data.message);
                 setOtpSent(true);
             }
         } catch (error: any) {
@@ -82,20 +71,16 @@ const Login: React.FC = () => {
         e.preventDefault();
         setLoading(true);
         try {
-            const response = await axios.post<ApiResponse<UserData>>(`${backendUrl}/api/login/verify-otp`, {
-                email: formData.email,
-                otp: formData.otp
-            });
+            const data = await authService.verifyOTP(formData.email, formData.otp);
 
-            if (response.data.success) {
-                toast.success(response.data.message);
-                localStorage.setItem('token', response.data.token || '');
-                const userData = response.data.userData;
-                localStorage.setItem('userData', JSON.stringify(userData || {}));
+            if (data.success) {
+                toast.success("Xác thực & Đăng nhập thành công");
+                localStorage.setItem('token', data.token || '');
+                localStorage.setItem('userData', JSON.stringify(data.userData || {}));
                 
-                // Redirect based on role
+                const userData = data.userData;
                 if (userData?.role === 'staff') {
-                    window.location.href = '/staff';
+                   window.location.href = '/staff';
                 } else if (userData?.role === 'admin' || userData?.role === 'hotelOwner') {
                     window.location.href = '/owner';
                 } else {
